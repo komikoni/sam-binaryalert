@@ -9,7 +9,7 @@
 aws_account_id = "999999999999"
 
 // AWS region in which to deploy the BinaryAlert components.
-aws_region = "dummy_region"
+aws_region = "az-dummyregion-1"
 
 // Prefix used in all resource names (required for uniqueness). E.g. "company_team"
 name_prefix = "dummy"
