@@ -656,7 +656,7 @@ Resources:
             Action: sts:AssumeRole
       MaxSessionDuration: 3600
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole # add
+        # - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole # add
         - !Ref IAMManagedPolicy
 
   IAMManagedPolicy: # lambda_iam.tf resource aws_iam_policy base_policy
