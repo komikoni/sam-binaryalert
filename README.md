@@ -172,14 +172,14 @@ sam build && sam deploy
 | 9 | sqs.tf | resource | aws_sqs_queue | analyzer_queue |  | AWS::SQS::Queue | SQSQueue |
 | 10 | sqs.tf | data | aws_iam_policy_document | analyzer_queue_policy |  |  |  |
 | 11 | sqs.tf | resource | aws_sqs_queue_policy | analyzer_queue_policy |  | AWS::SQS::QueuePolicy | SQSQueuePolicy |
-| 12 | sqs.tf | resource | aws_sqs_queue | downloader_queue |  | [WIP} |  |
-| 13 | sqs.tf | resource | aws_sqs_queue | dead_letter_queue |  | [WIP} |  |
+| 12 | sqs.tf | resource | aws_sqs_queue | downloader_queue |  | [WIP] |  |
+| 13 | sqs.tf | resource | aws_sqs_queue | dead_letter_queue |  | [WIP] |  |
 | 14 | lambda.tf | module | binaryalert_analyzer |  |  | AWS::Serverless::Function | LambdaFunction |
 |  |  |  |  |  |  | =>AWS::Lambda::Version | LambdaFunctionVersionXXXXXXXXXX |
 | 15 | lambda.tf | resource | aws_lambda_event_source_mapping | analyzer_via_sqs |  | =>AWS::Lambda::EventSourceMapping | LambdaFunctionAppEvent |
 | 16 | main.tf | data | aws_iam_policy_document | lambda_execution_policy |  |  |  |
-| 17 | lambda.tf | module | binaryalert_downloader |  |  | [WIP} |  |
-| 18 | lambda.tf | resource | aws_lambda_event_source_mapping | downloader_via_sqs |  | [WIP} |  |
+| 17 | lambda.tf | module | binaryalert_downloader |  |  | [WIP] |  |
+| 18 | lambda.tf | resource | aws_lambda_event_source_mapping | downloader_via_sqs |  | [WIP] |  |
 | 19 | main.tf | resource | aws_iam_role | role |  | AWS::IAM::Role | IAMRole |
 | 20 | main.tf | resource | aws_iam_role_policy_attachment | attach_base_policy |  |  |  |
 | 21 | main.tf | resource | aws_cloudwatch_log_group | lambda_log_group |  | AWS::Logs::LogGroup | LogsLogGroup |
@@ -198,16 +198,16 @@ sam build && sam deploy
 | 32 | sns.tf | resource | aws_sns_topic | metric_alarms |  | AWS::SNS::Topic | SNSTopicMetricAlarms |
 |  |  |  |  |  |  | AWS::SNS::TopicPolicy | SNSTopicPolicyMetricAlarms |
 | 33 | kms.tf | data | aws_iam_policy_document | kms_allow_s3 |  |  |  |
-| 34 | lambda_iam.tf | resource | aws_iam_role_policy | binaryalert_downloader_policy |  | [WIP} |  |
+| 34 | lambda_iam.tf | resource | aws_iam_role_policy | binaryalert_downloader_policy |  | WIP] |  |
 | 35 | kms.tf | resource | aws_kms_key | sse_s3 |  | AWS::KMS::Key | KMSKeySseS3 |
 | 36 | kms.tf | resource | aws_kms_alias | sse_s3_alias |  | AWS::KMS::Alias | KMSAliasSseS3 |
 | 37 | kms.tf | resource | aws_kms_key | sse_sqs |  | AWS::KMS::Key | KMSKeySseSqs |
 | 38 | kms.tf | resource | aws_kms_alias | sse_sqs_alias |  | AWS::KMS::Alias | KMSAliasSseSqs |
-| 39 | kms.tf | resource | aws_kms_key | carbon_black_credentials |  | [WIP} |  |
-| 40 | kms.tf | resource | aws_kms_alias | encrypt_credentials_alias |  | [WIP} |  |
+| 39 | kms.tf | resource | aws_kms_key | carbon_black_credentials |  | [WIP] |  |
+| 40 | kms.tf | resource | aws_kms_alias | encrypt_credentials_alias |  | [WIP] |  |
 | 41 | cloudwatch_metric_alarm.tf | resource | aws_cloudwatch_metric_alarm | analyzed_binaries |  | AWS::CloudWatch::Alarm | CloudWatchAlarmNoAnalyzedBinaries |
 | 42 | cloudwatch_metric_alarm.tf | resource | aws_cloudwatch_metric_alarm | analyzer_sqs_age |  | AWS::CloudWatch::Alarm | CloudWatchAlarmAnalyzerSqsAge |
-| 43 | cloudwatch_metric_alarm.tf | resource | aws_cloudwatch_metric_alarm | downloader_sqs_age |  | [WIP} |  |
+| 43 | cloudwatch_metric_alarm.tf | resource | aws_cloudwatch_metric_alarm | downloader_sqs_age |  | [WIP] |  |
 | 44 | cloudwatch_metric_alarm.tf | resource | aws_cloudwatch_metric_alarm | yara_rules |  | AWS::CloudWatch::Alarm | CloudWatchAlarmYaraRules |
 | 45 | cloudwatch_metric_alarm.tf | resource | aws_cloudwatch_metric_alarm | dynamo_throttles |  | AWS::CloudWatch::Alarm | CloudWatchAlarmDynamoThrottles |
 | 46 | cloudwatch_dashboard.tf | resource | aws_cloudwatch_dashboard | binaryalert |  | AWS::CloudWatch::Dashboard | CloudWatchDashboard |
