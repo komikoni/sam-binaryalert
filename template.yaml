@@ -13,8 +13,8 @@ Metadata:
     SpdxLicenseId: Apache-2.0
     ReadmeUrl: docs/README4SAR.md
     LicenseUrl: LICENSE
-    Labels: [Serverless, Anti-malware, s3]
-    SemanticVersion: 0.1.5-snapshot
+    Labels: [Serverless, Anti-malware, s3, Lambda]
+    SemanticVersion: 0.1.6-snapshot
     HomePageUrl: https://github.com/komikoni/sam-binaryalert#readme
     SourceCodeUrl: https://github.com/komikoni/sam-binaryalert.git
 
