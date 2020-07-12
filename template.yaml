@@ -25,7 +25,7 @@ Parameters:
     Type: String
     MinLength: 3
     MaxLength: 50
-    AllowedPattern: ^[a-z][a-z0-9-_]+$ # add "-".
+    AllowedPattern: ^[a-z][a-z0-9_]+$
 
   S3LogBucket: # s3_log_bucket
     Description: (Option) Pre-existing bucket in which to store S3 access logs. If not specified, one will be created.
@@ -158,14 +158,18 @@ Parameters:
 
   ExternalS3BucketResources: # external_s3_bucket_resources
     Description: |
-      (Option) If using BinaryAlert to scan existing S3 buckets, add the S3 and KMS resource ARNs here (separater is "," )
+      (Option) If using BinaryAlert to scan existing S3 buckets, add the S3 and KMS resource ARNs here (separater is "," No spaces before or after the comma)
       ex) arn:aws:s3:::bucket-name1/*,arn:aws:s3:::bucket-name2/*
-    Type: CommaDelimitedList
+    # CommaDelimitedList is not used because the merge of the array will cause a syntax error in the policy document and validation cannot be performed.
+    Type: String
     Default: ""
 
   ExternalKmsKeyResources: # external_kms_key_resources
-    Description: "(Option) "
-    Type: CommaDelimitedList
+    Description: |
+      (Option)  If using BinaryAlert to scan existing S3 buckets, add the S3 and KMS resource ARNs here (separater is "," No spaces before or after the comma)
+      ex) arn:aws:kms:ap-northeast-1:999999999999:key/xxxxx,arn:aws:kms:ap-northeast-1:111122223333:alias/ExampleAlias
+    # CommaDelimitedList is not used because the merge of the array will cause a syntax error in the policy document and validation cannot be performed.
+    Type: String
     Default: ""
 
   EnableNegativeMatchAlerts: # enable_negative_match_alerts
@@ -263,9 +267,9 @@ Conditions:
   EnableNegativeMatchAlertsCondition:
     !Equals [!Ref EnableNegativeMatchAlerts, "true"]
   EmptyExternalS3BucketResourcesCondition:
-    !Equals [!Join ["", !Ref ExternalS3BucketResources], ""]
+    !Equals [!Ref ExternalS3BucketResources, ""]
   EmptyExternalKmsKeyResourcesCondition:
-    !Equals [!Join ["", !Ref ExternalKmsKeyResources], ""]
+    !Equals [!Ref ExternalKmsKeyResources, ""]
 
 Resources:
   S3BucketBinaryalertBinaries: # s3.tf resource aws_s3_bucket binaryalert_binaries
@@ -693,24 +697,31 @@ Resources:
             Action:
               - kms:Decrypt
               - kms:Describe*
-            Resource:
-              - !GetAtt KMSKeySseSqs.Arn
-              - !GetAtt KMSKeySseS3.Arn
-              - !If
-                - EmptyExternalKmsKeyResourcesCondition
-                - !Ref AWS::NoValue
-                - !Ref ExternalKmsKeyResources
+            Resource: !If
+              - EmptyExternalKmsKeyResourcesCondition
+              - - !GetAtt KMSKeySseSqs.Arn
+                - !GetAtt KMSKeySseS3.Arn
+              - !Split
+                - ","
+                - !Join
+                  - ","
+                  - - !GetAtt KMSKeySseSqs.Arn
+                    - !GetAtt KMSKeySseS3.Arn
+                    - !Ref ExternalKmsKeyResources
           - Sid: GetFromS3Bucket
             Effect: Allow
             Action:
               - s3:GetObject*
               - s3:HeadObject
-            Resource:
+            Resource: !If
+              - EmptyExternalS3BucketResourcesCondition
               - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
-              - !If
-                - EmptyExternalS3BucketResourcesCondition
-                - !Ref AWS::NoValue
-                - !Ref ExternalS3BucketResources
+              - !Split
+                - ","
+                - !Join
+                  - ","
+                  - - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
+                    - !Ref ExternalS3BucketResources
           - Sid: PublishAlertsToSNS
             Effect: Allow
             Action: sns:Publish
@@ -1154,41 +1165,38 @@ Outputs:
   CloudWatchDashboardUrl:
     Description: CloudWatch dashboard for BinaryAlert
     Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${CloudWatchDashboard}
-  # TerraformTfvars:
-  #   Description: terraform.tfvars for BinaryAlert
-  #   Value: !Sub
-  #     - |
-  #       aws_account_id= "${AWS::AccountId}"
-  #       aws_region= "${AWS::Region}"
-  #       name_prefix= "${NamePrefix}"
-  #       enable_carbon_black_downloader= false
-  #       carbon_black_url= ""
-  #       carbon_black_timeout= 60
-  #       encrypted_carbon_black_api_token= ""
-  #       s3_log_bucket= "${S3LogBucket}"
-  #       s3_log_prefix= "${S3LogPrefix}"
-  #       s3_log_expiration_days= ${S3LogExpirationDays}
-  #       lambda_log_retention_days= ${LambdaLogRetentionDays}
-  #       tagged_name= "${TaggedName}"
-  #       metric_alarm_sns_topic_arn= "${MetricAlarmSnsTopicArn}"
-  #       expected_analysis_frequency_minutes= format("%d", ${ExpectedAnalysisFrequencySeconds} / 60) 
-  #       dynamo_read_capacity= ${DynamoReadCapacity}
-  #       dynamo_write_capacity= ${DynamoWriteCapacity}
-  #       lambda_analyze_memory_mb= ${LambdaAnalyzeMemoryMb}
-  #       lambda_analyze_timeout_sec= ${LambdaAnalyzeTimeoutSec}
-  #       lambda_analyze_concurrency_limit= ${LambdaAnalyzeConcurrencyLimit}
-  #       lambda_download_memory_mb= 256
-  #       lambda_download_timeout_sec= 300
-  #       lambda_download_concurrency_limit= 100
-  #       force_destroy= true
-  #       external_s3_bucket_resources= ${external_s3_bucket_resources}
-  #       external_kms_key_resources= ${external_kms_key_resources}
-  #       enable_negative_match_alerts= ${EnableNegativeMatchAlerts}
-  #       analyze_queue_batch_size= ${AnalyzeQueueBatchSize}
-  #       download_queue_batch_size= 1
-  #       analyze_queue_retention_secs= ${AnalyzeQueueRetentionSecs}
-  #       download_queue_retention_secs= 86400
-  #       objects_per_retro_message= 4
-  #       download_queue_max_receives= 100
-  #     - external_s3_bucket_resources: "[]" # !Ref ExternalS3BucketResources
-  #       external_kms_key_resources: "[]" # !Ref ExternalKmsKeyResources
+  TerraformTfvars:
+    Description: terraform.tfvars for BinaryAlert
+    Value: !Sub |
+      aws_account_id="${AWS::AccountId}"
+      aws_region="${AWS::Region}"
+      name_prefix="${NamePrefix}"
+      enable_carbon_black_downloader=false
+      carbon_black_url=""
+      carbon_black_timeout=60
+      encrypted_carbon_black_api_token=""
+      s3_log_bucket="${S3LogBucket}"
+      s3_log_prefix="${S3LogPrefix}"
+      s3_log_expiration_days=${S3LogExpirationDays}
+      lambda_log_retention_days=${LambdaLogRetentionDays}
+      tagged_name="${TaggedName}"
+      metric_alarm_sns_topic_arn="${MetricAlarmSnsTopicArn}"
+      expected_analysis_frequency_minutes=${ExpectedAnalysisFrequencySeconds} / 60 
+      dynamo_read_capacity=${DynamoReadCapacity}
+      dynamo_write_capacity=${DynamoWriteCapacity}
+      lambda_analyze_memory_mb=${LambdaAnalyzeMemoryMb}
+      lambda_analyze_timeout_sec=${LambdaAnalyzeTimeoutSec}
+      lambda_analyze_concurrency_limit=${LambdaAnalyzeConcurrencyLimit}
+      lambda_download_memory_mb=256
+      lambda_download_timeout_sec=300
+      lambda_download_concurrency_limit=100
+      force_destroy=true
+      external_s3_bucket_resources=[${ExternalS3BucketResources}]
+      external_kms_key_resources=[${ExternalKmsKeyResources}]
+      enable_negative_match_alerts=${EnableNegativeMatchAlerts}
+      analyze_queue_batch_size=${AnalyzeQueueBatchSize}
+      download_queue_batch_size=1
+      analyze_queue_retention_secs=${AnalyzeQueueRetentionSecs}
+      download_queue_retention_secs=86400
+      objects_per_retro_message=4
+      download_queue_max_receives100

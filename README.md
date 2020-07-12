@@ -161,7 +161,7 @@ sam build && sam deploy
 ### TODO
 
 * Compatible with Carbon Black
-* maintenance function with SSM Automation Document.
+* maintenance function with Cloud (SSM Automation Document.)
   * purge_queue
   * retro_fast
   * retro_slow
