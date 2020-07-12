@@ -30,7 +30,7 @@ Click here for explanation of SAR.
 ## Deploy by SAR
 
 1. AWS Web Console Login.
-2. SAR [SAM-BinaryAlert ](https://console.aws.amazon.com/lambda/home#/create/app?applicationId=arn:aws:serverlessrepo:ap-northeast-1:909044525866:applications/SAM-BinaryAlert) Jump.
+2. SAR [SAM-BinaryAlert](https://console.aws.amazon.com/lambda/home#/create/app?applicationId=arn:aws:serverlessrepo:ap-northeast-1:909044525866:applications/SAM-BinaryAlert) Jump.
 3. Set a unique value for the `NamePrefix` parameter. (^[a-z][a-z0-9-_]{3,50}$)
 4. Check to I acknowledge that this app creates custom IAM roles and resource policies.
 5. Hit the deploy button. 
@@ -157,6 +157,15 @@ sam build && sam deploy
 ```
 
 ## Appendix
+
+### TODO
+
+* Compatible with Carbon Black
+* maintenance function with SSM Automation Document.
+  * purge_queue
+  * retro_fast
+  * retro_slow
+  * live_test
 
 ### Terraform Cloudformation(SAM) Resources Mapping
 
