@@ -158,10 +158,11 @@ sam build && sam deploy
 
 ## Appendix
 
-### TODO
+### Future roadmap
 
 * Compatible with Carbon Black
-* maintenance function with Cloud (SSM Automation Document.)
+* Mutual conversion of samconfig.toml and terraform.tfvars
+* Maintenance function with Cloud (SSM Automation Document?)
   * purge_queue
   * retro_fast
   * retro_slow
