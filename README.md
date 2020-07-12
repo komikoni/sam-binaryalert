@@ -8,6 +8,7 @@ With SAR you can deploy with just a few clicks.(Required param is `NamePrefix` o
 [BinaryAlert](http://www.binaryalert.io/) is a serverless, real-time framework for detecting malicious files. (Use cool Terraform) 
 
 \* http://www.binaryalert.io/ \
+\* https://github.com/airbnb/binaryalert \
 \* SAM is Serverless Application Model\
 \* SAR is Serverless Application Repogitory
 
