@@ -341,3 +341,4 @@ package-lock.json
 
 # clone binaryalert
 binaryalert/
+template.yaml.dot
