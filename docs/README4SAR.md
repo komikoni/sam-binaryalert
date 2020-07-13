@@ -1,5 +1,7 @@
 # SAM-BinaryAlert (BETA)
 
+![SAM-BinaryAlert](https://raw.githubusercontent.com/komikoni/sam-binaryalert/main/docs/SAM-BinaryAlert_small.png)
+
 SAM-BinaryAlert can deploy BinaryAlert with SAR and SAM CLI. \
 With SAR you can deploy with just a few clicks.(Required param is **NamePrefix** only) 
 
@@ -29,10 +31,10 @@ Click here for explanation of SAR.
 
 1. AWS Web Console Login.
 2. SAR [SAM-BinaryAlert](https://console.aws.amazon.com/lambda/home#/create/app?applicationId=arn:aws:serverlessrepo:ap-northeast-1:909044525866:applications/SAM-BinaryAlert) Jump.
-3. Set a unique value for the **NamePrefix** parameter. (^[a-z][a-z0-9-_]{3,50}$)
+3. Set a unique value for the **NamePrefix** parameter. (^[a-z][a-z0-9_]{3,50}$)
 4. Check to I acknowledge that this app creates custom IAM roles and resource policies.
 5. Hit the deploy button. 
 
 ## Deploy by SAM CLI
 
-Go to GitHub https://github.com/komikoni/sam-binaryalert#readme
+Go to [SAM-BinaryAlert GitHub](https://github.com/komikoni/sam-binaryalert#readme)
