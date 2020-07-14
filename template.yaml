@@ -81,7 +81,7 @@ Parameters:
     Default: 10
 
   DynamoWriteCapacity: # dynamo_write_capacity
-    Description: "(Option) "
+    Description: (Option)
     Type: Number
     Default: 5
 
@@ -195,56 +195,111 @@ Parameters:
     Type: Number
     Default: 64800
 
-  ##### The following parameters are not supported. (CarbonBlack etc.)
-  #
-  # EnableCarbonBlackDownloader: # enable_carbon_black_downloader
-  #   Type: String
-  #   AllowedValues:
-  #     - true
-  #     - false
-  #   Default: false
-  #   Description: Optional CarbonBlack Downloader
-  # CarbonBlackUrl: # carbon_black_url
-  #   Description: URL of the CarbonBlack server.
-  #   Type: String
-  #   Default: ""
-  # CarbonBlackTimeout: # carbon_black_timeout
-  #   Description: |
-  #     Timeout to use for Carbon Black API client.
-  #     The client default is 60, so set to something lower if desired.
-  #   Type: Number
-  #   Default: 60
-  # EncryptedCarbonBlackApiToken: # encrypted_carbon_black_api_token
-  #   Description: The encrypted CarbonBlack API token will automatically be generated and saved here.
-  #   Type: String
-  #   Default: ""
-  # LambdaDownloadMemoryMb: # lambda_download_memory_mb
-  #   Description: Memory, time, and concurrency limits for the downloader function.
-  #   Type: Number
-  #   Default: 256
-  # LambdaDownloadTimeoutSec: # lambda_download_timeout_sec
-  #   Description: ""
-  #   Type: Number
-  #   Default: 300
-  # LambdaDownloadConcurrencyLimit: # lambda_download_concurrency_limit
-  #   Description: ""
-  #   Type: Number
-  #   Default: 100
-  # DownloadQueueBatchSize: # download_queue_batch_size
-  #   Description: =SQS=
-  #   Type: Number
-  #   Default: 1
-  # DownloadQueueRetentionSecs: # download_queue_retention_secs
-  #   Description: ""
-  #   Type: Number
-  #   Default: 86400
-  # DownloadQueueMaxReceives: # download_queue_max_receives
-  #   Description: |
-  #     If an SQS message is not deleted (successfully processed) after the max number of receive
-  #     attempts, the message is delivered to the SQS dead-letter queue.
-  #     Retries are common due to race-conditions with binaries landing on the Carbon Black server
-  #   Type: Number
-  #   Default: 100
+  EnableCarbonBlackDownloader: # enable_carbon_black_downloader
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+    Description: Optional CarbonBlack Downloader
+  CarbonBlackUrl: # carbon_black_url
+    Description: URL of the CarbonBlack server.
+    Type: String
+    Default: ""
+  CarbonBlackTimeout: # carbon_black_timeout
+    Description: |
+      Timeout to use for Carbon Black API client.
+      The client default is 60, so set to something lower if desired.
+    Type: Number
+    Default: 60
+  EncryptedCarbonBlackApiToken: # encrypted_carbon_black_api_token
+    Description: The encrypted CarbonBlack API token will automatically be generated and saved here.
+    Type: String
+    Default: ""
+  LambdaDownloadMemoryMb: # lambda_download_memory_mb
+    Description: Memory, time, and concurrency limits for the downloader function.
+    Type: Number
+    MinValue: 128
+    MaxValue: 3008
+    AllowedValues:
+      [
+        128,
+        192,
+        256,
+        320,
+        384,
+        448,
+        512,
+        576,
+        640,
+        704,
+        768,
+        832,
+        896,
+        960,
+        1024,
+        1088,
+        1152,
+        1216,
+        1280,
+        1344,
+        1408,
+        1472,
+        1536,
+        1600,
+        1664,
+        1728,
+        1792,
+        1856,
+        1920,
+        1984,
+        2048,
+        2112,
+        2176,
+        2240,
+        2304,
+        2368,
+        2432,
+        2496,
+        2560,
+        2624,
+        2688,
+        2752,
+        2816,
+        2880,
+        2944,
+        3008,
+      ]
+    Default: 256
+  LambdaDownloadTimeoutSec: # lambda_download_timeout_sec
+    Description: ""
+    Type: Number
+    Default: 300
+  LambdaDownloadConcurrencyLimit: # lambda_download_concurrency_limit
+    Description: ""
+    Type: Number
+    Default: 100
+  DownloadQueueBatchSize: # download_queue_batch_size
+    Description: =SQS=
+    Type: Number
+    Default: 1
+  DownloadQueueRetentionSecs: # download_queue_retention_secs
+    Description: ""
+    Type: Number
+    Default: 86400
+  DownloadQueueRetentionSecs75Percent: # download_queue_retention_secs * 0.75
+    Description: (Option) DownloadQueueRetentionSecs * 0.75
+    Type: Number
+    Default: 64800
+  DownloadQueueMaxReceives: # download_queue_max_receives
+    Description: |
+      If an SQS message is not deleted (successfully processed) after the max number of receive
+      attempts, the message is delivered to the SQS dead-letter queue.
+      Retries are common due to race-conditions with binaries landing on the Carbon Black server
+    Type: Number
+    Default: 100
+
+  ##### The following parameters are not supported.
   #
   # ObjectsPerRetroMessage: # objects_per_retro_message
   #   Description: During a retroactive scan, number of S3 objects to pack into a single SQS message.
@@ -256,9 +311,9 @@ Parameters:
   #     WARNING: If force destroy is enabled, all objects in the S3 bucket(s) will be deleted during
   #   Type: String
   #   AllowedValues:
-  #     - true
-  #     - false
-  #   Default: true
+  #     - "true"
+  #     - "false"
+  #   Default: "true"
 
 Conditions:
   EmptyS3LogBucketCondition: !Equals [!Ref S3LogBucket, ""]
@@ -270,12 +325,14 @@ Conditions:
     !Equals [!Ref ExternalS3BucketResources, ""]
   EmptyExternalKmsKeyResourcesCondition:
     !Equals [!Ref ExternalKmsKeyResources, ""]
+  EnableCarbonBlackDownloaderCondition:
+    !Equals [!Ref EnableCarbonBlackDownloader, "true"]
 
 Resources:
   S3BucketBinaryalertBinaries: # s3.tf resource aws_s3_bucket binaryalert_binaries
     Type: AWS::S3::Bucket
     DependsOn:
-      - SQSQueuePolicy # The queue policy must be created before we can configure the S3 notification.
+      - SQSQueuePolicyAnalyzer # The queue policy must be created before we can configure the S3 notification.
     Properties:
       BucketName: !Join
         - ""
@@ -325,7 +382,7 @@ Resources:
       NotificationConfiguration:
         QueueConfigurations:
           - Event: s3:ObjectCreated:*
-            Queue: !GetAtt SQSQueue.Arn
+            Queue: !GetAtt SQSQueueAnalyzer.Arn
       VersioningConfiguration:
         Status: Enabled
 
@@ -413,10 +470,10 @@ Resources:
               Bool:
                 aws:SecureTransport: false
 
-  SQSQueue: # sqs.tf resource aws_sqs_queue analyzer_queue
+  SQSQueueAnalyzer: # sqs.tf resource aws_sqs_queue analyzer_queue
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub ${LambdaFunction}_queue
+      QueueName: !Sub ${LambdaFunctionAnalyzer}_queue
       Tags:
         - Key: Name
           Value: !Ref TaggedName
@@ -424,11 +481,11 @@ Resources:
       MessageRetentionPeriod: !Ref AnalyzeQueueRetentionSecs
       VisibilityTimeout: !Ref LambdaAnalyzeTimeoutSecPlus2Sec
 
-  SQSQueuePolicy: # sqs.tf resource aws_sqs_queue_policy analyzer_queue_policy
+  SQSQueuePolicyAnalyzer: # sqs.tf resource aws_sqs_queue_policy analyzer_queue_policy
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !Ref SQSQueue
+        - !Ref SQSQueueAnalyzer
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -438,7 +495,7 @@ Resources:
               AWS: "*"
             Action:
               - sqs:SendMessage
-            Resource: !GetAtt SQSQueue.Arn
+            Resource: !GetAtt SQSQueueAnalyzer.Arn
             Condition:
               ArnEquals:
                 # aws:SourceArn: !Sub arn:aws:s3:::${S3BucketBinaryalertBinaries} # circular reference
@@ -449,10 +506,11 @@ Resources:
                     - .binaryalert-binaries.
                     - !Ref AWS::Region
 
-  LambdaFunction: # lambda.tf module binaryalert_analyzer
+  LambdaFunctionAnalyzer: # lambda.tf module binaryalert_analyzer
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: makefile
+    # DependOn: IAMPolicy # Not Work https://github.com/awslabs/serverless-application-model/issues/68
     Properties:
       Description: Analyze a binary with a set of YARA rules
       FunctionName: !Sub ${NamePrefix}_binaryalert_analyzer
@@ -460,7 +518,7 @@ Resources:
         Name: !Ref TaggedName
       CodeUri: binaryalert/
       Handler: lambda_functions.analyzer.main.analyze_lambda_handler
-      Runtime: python3.6
+      Runtime: python3.7
       MemorySize: !Ref LambdaAnalyzeMemoryMb
       Timeout: !Ref LambdaAnalyzeTimeoutSec
       ReservedConcurrentExecutions: !Ref LambdaAnalyzeConcurrencyLimit
@@ -471,30 +529,27 @@ Resources:
           Type: SQS
           Properties:
             BatchSize: !Ref AnalyzeQueueBatchSize
-            Queue: !GetAtt SQSQueue.Arn
+            Queue: !GetAtt SQSQueueAnalyzer.Arn
             Enabled: true
       Environment:
         Variables:
           YARA_ALERTS_SNS_TOPIC_ARN: !Ref SNSTopicYaraMatchAlerts
-          YARA_MATCHES_DYNAMO_TABLE_NAME: !Ref DynamoDBTable
+          YARA_MATCHES_DYNAMO_TABLE_NAME: !Ref DynamoDBTableYaraMatches
           NO_MATCHES_SNS_TOPIC_ARN: !If
             - EnableNegativeMatchAlertsCondition
             - !Ref SNSTopicNoYaraMatchAlerts
             - ""
-  CloudWatchLogsLogGroupLambda: # main.tf resource aws_cloudwatch_log_group lambda_log_group
+  CloudWatchLogsLogGroupLambdaAnalyzer: # main.tf resource aws_cloudwatch_log_group lambda_log_group
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${LambdaFunction}
+      LogGroupName: !Sub /aws/lambda/${LambdaFunctionAnalyzer}
       RetentionInDays: !Ref LambdaLogRetentionDays
 
-  CloudWatchAlarmLambdaErrors: # main.tf resource aws_cloudwatch_metric_alarm lambda_errors
+  CloudWatchAlarmLambdaAnalyzerErrors: # main.tf resource aws_cloudwatch_metric_alarm lambda_errors
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub ${LambdaFunction}_errors
-      AlarmDescription: !Sub |
-        ${LambdaFunction} has a high error rate. Check the CloudWatch logs.
-
-      ActionsEnabled: true
+      AlarmName: !Sub ${LambdaFunctionAnalyzer}_errors
+      AlarmDescription: !Sub ${LambdaFunctionAnalyzer} has a high error rate. Check the CloudWatch logs.
       AlarmActions:
         - !If
           - EmptyMetricAlarmSnsTopicArnCondition
@@ -505,16 +560,16 @@ Resources:
       Statistic: Sum
       Dimensions:
         - Name: FunctionName
-          Value: !Ref LambdaFunction
+          Value: !Ref LambdaFunctionAnalyzer
         - Name: Resource
-          Value: !Sub "${LambdaFunction}:Production"
+          Value: !Sub ${LambdaFunctionAnalyzer}:Production
       Period: 300
       EvaluationPeriods: 1
       Threshold: 10
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: missing
 
-  DynamoDBTable: # dynamo.tf resource aws_dynamodb_table binaryalert_yara_matches
+  DynamoDBTableYaraMatches: # dynamo.tf resource aws_dynamodb_table binaryalert_yara_matches
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub ${NamePrefix}_binaryalert_matches
@@ -654,8 +709,8 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      MaxSessionDuration: 3600
       ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole # add
         - !Ref IAMManagedPolicy
 
   IAMManagedPolicy: # lambda_iam.tf resource aws_iam_policy base_policy
@@ -678,7 +733,7 @@ Resources:
   IAMPolicy: # lambda_iam.tf resource aws_iam_role_policy binaryalert_analyzer_policy
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub ${LambdaFunction}_policy
+      PolicyName: !Sub ${LambdaFunctionAnalyzer}_policy
       Roles:
         - !Ref IAMRole
       PolicyDocument:
@@ -690,7 +745,7 @@ Resources:
               - dynamodb:UpdateItem
               - dynamodb:Query
               - dynamodb:PutItem
-            Resource: !GetAtt DynamoDBTable.Arn
+            Resource: !GetAtt DynamoDBTableYaraMatches.Arn
           - Sid: DecryptSSE
             Effect: Allow
             Action:
@@ -737,7 +792,7 @@ Resources:
               - sqs:GetQueueAttributes
               - sqs:DeleteMessage
               - sqs:ChangeMessageVisibility
-            Resource: !GetAtt SQSQueue.Arn
+            Resource: !GetAtt SQSQueueAnalyzer.Arn
 
   KMSKeySseS3: # kms.tf resource aws_kms_key sse_s3
     Type: AWS::KMS::Key
@@ -808,9 +863,9 @@ Resources:
   CloudWatchAlarmNoAnalyzedBinaries: # cloudwatch_metric_alarm.tf resource aws_cloudwatch_metric_alarm analyzed_binaries
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub ${LambdaFunction}_no_analyzed_binaries
+      AlarmName: !Sub ${LambdaFunctionAnalyzer}_no_analyzed_binaries
       AlarmDescription: !Sub |
-        ${LambdaFunction} is not analyzing any binaries!
+        ${LambdaFunctionAnalyzer} is not analyzing any binaries!
           - If any BinaryAlert Lambda function was recently deployed, roll it back via the AWS console.
           - Binaries may not be arriving in the S3 bucket.
 
@@ -837,9 +892,9 @@ Resources:
   CloudWatchAlarmAnalyzerSqsAge: # cloudwatch_metric_alarm.tf resource aws_cloudwatch_metric_alarm analyzer_sqs_age
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub ${SQSQueue.QueueName}_old_age
+      AlarmName: !Sub ${SQSQueueAnalyzer.QueueName}_old_age
       AlarmDescription: !Sub |
-        The queue ${SQSQueue.QueueName} is not being processed quickly enough:
+        The queue ${SQSQueueAnalyzer.QueueName} is not being processed quickly enough:
         messages are reaching 75% of the queue retention and may be expired soon.
           - Consider increasing the lambda_analyze_concurrency_limit to process more events
           - Consider raising the retention period for this queue
@@ -849,7 +904,7 @@ Resources:
       Statistic: Minimum
       Dimensions:
         - Name: QueueName
-          Value: !GetAtt SQSQueue.QueueName
+          Value: !GetAtt SQSQueueAnalyzer.QueueName
       ComparisonOperator: GreaterThanThreshold
       Threshold: !Ref AnalyzeQueueRetentionSecs75Percent
       Period: 60
@@ -868,7 +923,7 @@ Resources:
   CloudWatchAlarmYaraRules: # cloudwatch_metric_alarm.tf resource aws_cloudwatch_metric_alarm yara_rules
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub ${LambdaFunction}_too_few_yara_rules
+      AlarmName: !Sub ${LambdaFunctionAnalyzer}_too_few_yara_rules
       AlarmDescription: |
         The number of YARA rules in BinaryAlert is surprisingly low.
         Check if a recent deploy accidentally removed most YARA rules.
@@ -889,7 +944,7 @@ Resources:
   CloudWatchAlarmDynamoThrottles: # cloudwatch_metric_alarm.tf resource aws_cloudwatch_metric_alarm dynamo_throttles
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub ${DynamoDBTable}_throttles
+      AlarmName: !Sub ${DynamoDBTableYaraMatches}_throttles
       AlarmDescription: |
         Read or write requests to the BinaryAlert DynamoDB table are being throttled.
           - Check the ReadThrottleEvents and WriteThrottleEvents Dynamo metrics to understand which
@@ -903,7 +958,7 @@ Resources:
       Statistic: Sum
       Dimensions:
         - Name: TableName
-          Value: !Ref DynamoDBTable
+          Value: !Ref DynamoDBTableYaraMatches
       ComparisonOperator: GreaterThanThreshold
       Threshold: 0
       Period: 60
@@ -913,6 +968,218 @@ Resources:
           - EmptyMetricAlarmSnsTopicArnCondition
           - !Ref SNSTopicMetricAlarms
           - !Ref MetricAlarmSnsTopicArn
+
+  KMSKeyCarbonBlackCredentials: # kms.tf resource aws_kms_key carbon_black_credentials
+    Type: AWS::KMS::Key
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      Enabled: true
+      Description: Encrypts CarbonBlack credentials for the BinaryAlert downloader.
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+
+  KMSAliasCarbonBlackCredentials: # kms.tf resource aws_kms_alias encrypt_credentials_alias
+    Type: AWS::KMS::Alias
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      AliasName: !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${NamePrefix}_binaryalert_carbonblack_credentials
+      TargetKeyId: !Ref KMSKeyCarbonBlackCredentials
+
+  # IAMRole2: # main.tf resource aws_iam_role role
+  #   Type: AWS::IAM::Role
+  #   Condition: EnableCarbonBlackDownloaderCondition
+  #   Properties:
+  #     Path: /
+  #     # RoleName: !Sub "${NamePrefix}_binaryalert_downloader_role"  # Only works with CAPABILITY_IAM
+  #     AssumeRolePolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Sid: AllowLambdaToAssumeRole
+  #           Effect: Allow
+  #           Principal:
+  #             Service: lambda.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     ManagedPolicyArns:
+  #       - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+  #       - !Ref IAMManagedPolicy
+
+  # IAMPolicy2: # lambda_iam.tf resource aws_iam_role_policy binaryalert_downloader_policy
+  #   Type: AWS::IAM::Policy
+  #   Condition: EnableCarbonBlackDownloaderCondition
+  #   Properties:
+  #     PolicyName: !Sub ${LambdaFunctionDownloader}_policy
+  #     Roles:
+  #       - !Ref IAMRole2
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Sid: AllowSSE
+  #           Effect: Allow
+  #           Action:
+  #             - kms:GenerateDataKey
+  #             - kms:Decrypt
+  #           Resource:
+  #             - - !GetAtt KMSKeySseSqs.Arn
+  #               - !GetAtt KMSKeySseS3.Arn
+  #         - Sid: DecryptCarbonBlackCredentials
+  #           Effect: Allow
+  #           Action: kms:Decrypt
+  #           Resource: !GetAtt KMSKeyCarbonBlackCredentials.Arn
+  #         - Sid: UploadToBinaryAlertBucket
+  #           Effect: Allow
+  #           Action: s3:PutObject
+  #           Resource: !Sub ${S3BucketBinaryalertBinaries.Arn}/*
+  #         - Sid: ProcessSQSMessages
+  #           Effect: Allow
+  #           Action:
+  #             - sqs:ReceiveMessage
+  #             - sqs:GetQueueAttributes
+  #             - sqs:DeleteMessage
+  #             - sqs:ChangeMessageVisibility
+  #           Resource: !GetAtt SQSQueueDownloader.Arn
+
+  LambdaFunctionDownloader: # lambda.tf module binaryalert_downloader
+    Type: AWS::Serverless::Function
+    Condition: EnableCarbonBlackDownloaderCondition
+    # DependOn: # Not Work https://github.com/awslabs/serverless-application-model/issues/68
+    #   - IAMPolicy2
+    #   - SQSQueueDownloader
+    Properties:
+      Description: Copies binaries from CarbonBlack into the BinaryAlert S3 bucket
+      FunctionName: !Sub ${NamePrefix}_binaryalert_downloader
+      Tags:
+        Name: !Ref TaggedName
+      CodeUri: binaryalert/lambda_functions/downloader
+      Handler: lambda_functions.downloader.main.download_lambda_handler
+      Runtime: python3.7
+      MemorySize: !Ref LambdaDownloadMemoryMb
+      Timeout: !Ref LambdaDownloadTimeoutSec
+      ReservedConcurrentExecutions: !Ref LambdaDownloadConcurrencyLimit
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+        - SQSPollerPolicy:
+            QueueName: !GetAtt SQSQueueDownloader.QueueName
+        - KMSDecryptPolicy:
+            KeyId: !Ref KMSKeyCarbonBlackCredentials
+        - S3WritePolicy:
+            BucketName: !Ref S3BucketBinaryalertBinaries
+        - Statement:
+            - Sid: AllowSSE
+              Effect: Allow
+              Action:
+                - kms:GenerateDataKey
+                - kms:Decrypt
+              Resource:
+                - !GetAtt KMSKeySseSqs.Arn
+                - !GetAtt KMSKeySseS3.Arn
+
+      # Role: !GetAtt IAMRole2.Arn
+      AutoPublishAlias: Production
+      Events:
+        AppEvent:
+          Type: SQS
+          Properties:
+            BatchSize: !Ref DownloadQueueBatchSize
+            Queue: !GetAtt SQSQueueDownloader.Arn
+            Enabled: true
+      Environment:
+        Variables:
+          TARGET_S3_BUCKET: !Ref S3BucketPolicyBinaryalertBinaries
+          CARBON_BLACK_URL: !Ref CarbonBlackUrl
+          CARBON_BLACK_TIMEOUT: !Ref CarbonBlackTimeout
+          ENCRYPTED_CARBON_BLACK_API_TOKEN: !Ref EncryptedCarbonBlackApiToken
+
+  LogsLogGroupLambdaDownloader: # main.tf resource aws_cloudwatch_log_group lambda_log_group
+    Type: AWS::Logs::LogGroup
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LambdaFunctionDownloader}
+      RetentionInDays: !Ref LambdaLogRetentionDays
+
+  SQSQueueDownloader: # sqs.tf resource aws_sqs_queue downloader_queue
+    Type: AWS::SQS::Queue
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      QueueName: !Sub ${NamePrefix}_binaryalert_downloader_queue
+      KmsMasterKeyId: !GetAtt KMSKeySseSqs.Arn
+      MessageRetentionPeriod: !Ref DownloadQueueRetentionSecs
+      VisibilityTimeout: !Ref LambdaAnalyzeTimeoutSecPlus2Sec
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SQSQueueDeadLetter.Arn
+        maxReceiveCount: !Ref DownloadQueueMaxReceives
+
+  SQSQueueDeadLetter: # sqs.tf resource aws_sqs_queue dead_letter_queue
+    Type: AWS::SQS::Queue
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      QueueName: !Sub ${NamePrefix}_binaryalert_sqs_dead_letter_queue
+      KmsMasterKeyId: !GetAtt KMSKeySseSqs.Arn
+      MessageRetentionPeriod: 1209600
+
+  CloudWatchAlarmLambdaDownloaderErrors: # main.tf resource aws_cloudwatch_metric_alarm lambda_errors
+    Type: AWS::CloudWatch::Alarm
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      AlarmName: !Sub ${LambdaFunctionDownloader}_errors
+      AlarmDescription: !Sub ${LambdaFunctionDownloader} has a high error rate. Check the CloudWatch logs.
+      AlarmActions:
+        - !If
+          - EmptyMetricAlarmSnsTopicArnCondition
+          - !Ref SNSTopicMetricAlarms
+          - !Ref MetricAlarmSnsTopicArn
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunctionDownloader
+        - Name: Resource
+          Value: !Sub ${LambdaFunctionDownloader}:Production
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 500
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+
+  CloudWatchAlarmDownloaderSqsAge: # cloudwatch_metric_alarm.tf resource aws_cloudwatch_metric_alarm downloader_sqs_age
+    Type: AWS::CloudWatch::Alarm
+    Condition: EnableCarbonBlackDownloaderCondition
+    Properties:
+      AlarmName: !Sub ${LambdaFunctionDownloader}_queue_old_age
+      AlarmDescription: !Sub |
+        The queue ${LambdaFunctionDownloader}_queue is not being processed quickly enough:
+        messages are reaching 75% of the queue retention and may be expired soon.
+          - Consider increasing the lambda_download_concurrency_limit to process more events
+          - Consider raising the retention period for this queue
+      AlarmActions:
+        - !If
+          - EmptyMetricAlarmSnsTopicArnCondition
+          - !Ref SNSTopicMetricAlarms
+          - !Ref MetricAlarmSnsTopicArn
+      InsufficientDataActions:
+        - !If
+          - EmptyMetricAlarmSnsTopicArnCondition
+          - !Ref SNSTopicMetricAlarms
+          - !Ref MetricAlarmSnsTopicArn
+      MetricName: ApproximateAgeOfOldestMessage
+      Namespace: AWS/SQS
+      Statistic: Minimum
+      Dimensions:
+        - Name: QueueName
+          Value: !Sub ${LambdaFunctionDownloader}_queue
+      Period: 60
+      EvaluationPeriods: 10
+      Threshold: !Ref DownloadQueueRetentionSecs75Percent
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
 
   CloudWatchDashboard: # cloudwatch_dashboard.tf resource aws_cloudwatch_dashboard binaryalert
     Type: AWS::CloudWatch::Dashboard
@@ -925,6 +1192,7 @@ Resources:
               ${s3_bucket_stats},     ${yara_rules},
               ${analyzed_binaries},   ${sns_publications},
               ${sqs_analyzer},        ${sqs_analyzer_age},
+              ${downloader_section}
               ${lambda_invocations},  ${max_lambda_duration},
               ${lambda_errors},       ${lambda_throttles},
               ${s3_download_latency}, ${log_bytes}
@@ -1009,11 +1277,11 @@ Resources:
               "type": "metric",
               "width": 12,
               "properties": {
-                "title": "SQS: ${SQSQueue.QueueName}",
+                "title": "SQS: ${SQSQueueAnalyzer.QueueName}",
                 "region": "${AWS::Region}",
                 "stat": "Sum",
                 "metrics": [
-                  ["AWS/SQS", "NumberOfMessagesSent", "QueueName", "${SQSQueue.QueueName}"],
+                  ["AWS/SQS", "NumberOfMessagesSent", "QueueName", "${SQSQueueAnalyzer.QueueName}"],
                   [".", "NumberOfMessagesReceived", ".", "."],
                   [".", "ApproximateNumberOfMessagesVisible", ".", ".", {"stat": "Average"}]
                 ]
@@ -1030,7 +1298,7 @@ Resources:
                 "metrics": [
                   [
                     "AWS/SQS", "ApproximateAgeOfOldestMessage",
-                    "QueueName", "${SQSQueue.QueueName}"
+                    "QueueName", "${SQSQueueAnalyzer.QueueName}"
                   ]
                 ],
                 "annotations": {
@@ -1058,10 +1326,9 @@ Resources:
                 "metrics": [
                   [
                     "AWS/Lambda", "Invocations",
-                    "FunctionName", "${LambdaFunction}",
+                    "FunctionName", "${LambdaFunctionAnalyzer}",
                     {"label": "Analyzer"}
                   ]
-                  
                 ]
               }
             }
@@ -1076,10 +1343,9 @@ Resources:
                 "metrics": [
                   [
                     "AWS/Lambda", "Duration",
-                    "FunctionName", "${LambdaFunction}",
+                    "FunctionName", "${LambdaFunctionAnalyzer}",
                     {"label": "Analyzer"}
                   ]
-                  
                 ],
                 "annotations": {
                   "horizontal": [
@@ -1102,10 +1368,9 @@ Resources:
                 "metrics": [
                   [
                     "AWS/Lambda", "Errors",
-                    "FunctionName", "${LambdaFunction}",
+                    "FunctionName", "${LambdaFunctionAnalyzer}",
                     {"label": "Analyzer"}
                   ]
-                  
                 ]
               }
             }
@@ -1120,10 +1385,9 @@ Resources:
                 "metrics": [
                   [
                     "AWS/Lambda", "Throttles",
-                    "FunctionName", "${LambdaFunction}",
+                    "FunctionName", "${LambdaFunctionAnalyzer}",
                     {"label": "Analyzer"}
                   ]
-                  
                 ]
               }
             }
@@ -1153,12 +1417,60 @@ Resources:
                 "metrics": [
                   [
                     "AWS/Logs", "IncomingBytes",
-                    "LogGroupName", "/aws/lambda/${LambdaFunction}",
+                    "LogGroupName", "/aws/lambda/${LambdaFunctionAnalyzer}",
                     {"label": "Analyzer"}
                   ]
                 ]
               }
             }
+          downloader_section: !If
+            - EnableCarbonBlackDownloaderCondition
+            - !Sub
+              - ${sqs_downloader}, ${sqs_downloader_age},
+              - sqs_downloader: !Sub >-
+                  {
+                    "type": "metric",
+                    "width": 12,
+                    "properties": {
+                      "title": "SQS: ${SQSQueueDownloader.QueueName}",
+                      "region": "${AWS::Region}",
+                      "stat": "Sum",
+                      "metrics": [
+                        ["AWS/SQS", "NumberOfMessagesSent", "QueueName", "${SQSQueueDownloader.QueueName}"],
+                        [".", "NumberOfMessagesReceived", ".", "."],
+                        [".", "ApproximateNumberOfMessagesVisible", ".", ".", {"stat": "Average"}]
+                      ]
+                    }
+                  }
+                sqs_downloader_age: !Sub >-
+                  {
+                    "type": "metric",
+                    "width": 12,
+                    "properties": {
+                      "title": "Downloader SQS - Age Of Oldest Message",
+                      "region": "${AWS::Region}",
+                      "stat": "Average",
+                      "metrics": [
+                        [
+                          "AWS/SQS", "ApproximateAgeOfOldestMessage",
+                          "QueueName", "${SQSQueueDownloader.QueueName}"
+                        ]
+                      ],
+                      "annotations": {
+                        "horizontal": [
+                          {
+                            "label": "Max",
+                            "value": ${DownloadQueueRetentionSecs}
+                          },
+                          {
+                            "label": "Alarm",
+                            "value": ${DownloadQueueRetentionSecs75Percent}
+                          }
+                        ]
+                      }
+                    }
+                  }
+            - ""
 
 Outputs:
   CloudWatchDashboardUrl:
@@ -1170,10 +1482,10 @@ Outputs:
       aws_account_id="${AWS::AccountId}"
       aws_region="${AWS::Region}"
       name_prefix="${NamePrefix}"
-      enable_carbon_black_downloader=false
-      carbon_black_url=""
-      carbon_black_timeout=60
-      encrypted_carbon_black_api_token=""
+      enable_carbon_black_downloader=${EnableCarbonBlackDownloader}
+      carbon_black_url="${CarbonBlackUrl}"
+      carbon_black_timeout=${CarbonBlackTimeout}
+      encrypted_carbon_black_api_token="${EncryptedCarbonBlackApiToken}"
       s3_log_bucket="${S3LogBucket}"
       s3_log_prefix="${S3LogPrefix}"
       s3_log_expiration_days=${S3LogExpirationDays}
@@ -1186,16 +1498,16 @@ Outputs:
       lambda_analyze_memory_mb=${LambdaAnalyzeMemoryMb}
       lambda_analyze_timeout_sec=${LambdaAnalyzeTimeoutSec}
       lambda_analyze_concurrency_limit=${LambdaAnalyzeConcurrencyLimit}
-      lambda_download_memory_mb=256
-      lambda_download_timeout_sec=300
-      lambda_download_concurrency_limit=100
+      lambda_download_memory_mb=${LambdaDownloadMemoryMb}
+      lambda_download_timeout_sec=${LambdaDownloadTimeoutSec}
+      lambda_download_concurrency_limit=${LambdaDownloadConcurrencyLimit}
       force_destroy=true
       external_s3_bucket_resources=[${ExternalS3BucketResources}]
       external_kms_key_resources=[${ExternalKmsKeyResources}]
       enable_negative_match_alerts=${EnableNegativeMatchAlerts}
       analyze_queue_batch_size=${AnalyzeQueueBatchSize}
-      download_queue_batch_size=1
+      download_queue_batch_size=${DownloadQueueBatchSize}
       analyze_queue_retention_secs=${AnalyzeQueueRetentionSecs}
-      download_queue_retention_secs=86400
+      download_queue_retention_secs=${DownloadQueueRetentionSecs}
       objects_per_retro_message=4
-      download_queue_max_receives100
+      download_queue_max_receives=${DownloadQueueMaxReceives}
