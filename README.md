@@ -18,7 +18,7 @@ With SAR you can deploy with just a few clicks.(Required param is `NamePrefix` o
 | --- | --- | --- |
 | Feature | Perfect | Simple, Convenient |
 | How to deploy | Terraform | SAM, SAR |
-| Functionality | Full | Almost the same.<br>Currently not compatible with Carbon Black |
+| Functionality | Full | Almost the same. |
 | Maintainability | Full | The core Lambda application is the same and always up to date (not forking)<br>The infrastructure has been rewritten with the SAM Template. (I will do my best to catch up) |
 | Limit | No limit | Each value that needs to be calculated requires parameter setting.<br>Minutes have been changed to seconds, threshold parameters etc. are increasing. <br>(cfn cannot be calculated!) |
 
@@ -162,7 +162,7 @@ sam build && sam deploy
 
 ### Future roadmap
 
-* Compatible with Carbon Black
+* Compatible with Carbon Black => Done
 * Mutual conversion of samconfig.toml and terraform.tfvars
 * Maintenance function with Cloud (SSM Automation Document?)
   * purge_queue

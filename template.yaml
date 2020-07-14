@@ -14,7 +14,7 @@ Metadata:
     ReadmeUrl: docs/README4SAR.md
     LicenseUrl: LICENSE
     Labels: [Serverless, Anti-malware, s3, Lambda, Apache2, MadeInJapan]
-    SemanticVersion: 0.1.7-snapshot
+    SemanticVersion: 0.2.0-snapshot
     HomePageUrl: https://github.com/komikoni/sam-binaryalert#readme
     SourceCodeUrl: https://github.com/komikoni/sam-binaryalert.git
 
@@ -51,7 +51,7 @@ Parameters:
     Description: |
       (Option) =Advanced Configuration=
       Tags make it easier to organize resources, view grouped billing information, etc.
-      All supported resources (CloudWatch logs, Dyanmo, KMS, Lambda, S3, SQS) are tagged with
+      All supported resources (Dyanmo, KMS, Lambda, S3, SQS) are tagged with
       Name = [YOUR_VALUE_BELOW]
     Type: String
     Default: BinaryAlert
@@ -974,6 +974,9 @@ Resources:
     Condition: EnableCarbonBlackDownloaderCondition
     Properties:
       Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Ref TaggedName
       Description: Encrypts CarbonBlack credentials for the BinaryAlert downloader.
       KeyUsage: ENCRYPT_DECRYPT
       KeyPolicy:
@@ -1109,6 +1112,9 @@ Resources:
     Condition: EnableCarbonBlackDownloaderCondition
     Properties:
       QueueName: !Sub ${NamePrefix}_binaryalert_downloader_queue
+      Tags:
+        - Key: Name
+          Value: !Ref TaggedName
       KmsMasterKeyId: !GetAtt KMSKeySseSqs.Arn
       MessageRetentionPeriod: !Ref DownloadQueueRetentionSecs
       VisibilityTimeout: !Ref LambdaAnalyzeTimeoutSecPlus2Sec
@@ -1121,6 +1127,9 @@ Resources:
     Condition: EnableCarbonBlackDownloaderCondition
     Properties:
       QueueName: !Sub ${NamePrefix}_binaryalert_sqs_dead_letter_queue
+      Tags:
+        - Key: Name
+          Value: !Ref TaggedName
       KmsMasterKeyId: !GetAtt KMSKeySseSqs.Arn
       MessageRetentionPeriod: 1209600
 
@@ -1130,24 +1139,23 @@ Resources:
     Properties:
       AlarmName: !Sub ${LambdaFunctionDownloader}_errors
       AlarmDescription: !Sub ${LambdaFunctionDownloader} has a high error rate. Check the CloudWatch logs.
-      AlarmActions:
-        - !If
-          - EmptyMetricAlarmSnsTopicArnCondition
-          - !Ref SNSTopicMetricAlarms
-          - !Ref MetricAlarmSnsTopicArn
-      MetricName: Errors
       Namespace: AWS/Lambda
+      MetricName: Errors
       Statistic: Sum
       Dimensions:
         - Name: FunctionName
           Value: !Ref LambdaFunctionDownloader
         - Name: Resource
           Value: !Sub ${LambdaFunctionDownloader}:Production
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 500
       Period: 300
       EvaluationPeriods: 1
-      Threshold: 500
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
+      AlarmActions:
+        - !If
+          - EmptyMetricAlarmSnsTopicArnCondition
+          - !Ref SNSTopicMetricAlarms
+          - !Ref MetricAlarmSnsTopicArn
 
   CloudWatchAlarmDownloaderSqsAge: # cloudwatch_metric_alarm.tf resource aws_cloudwatch_metric_alarm downloader_sqs_age
     Type: AWS::CloudWatch::Alarm
@@ -1159,6 +1167,16 @@ Resources:
         messages are reaching 75% of the queue retention and may be expired soon.
           - Consider increasing the lambda_download_concurrency_limit to process more events
           - Consider raising the retention period for this queue
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Statistic: Minimum
+      Dimensions:
+        - Name: QueueName
+          Value: !Sub ${LambdaFunctionDownloader}_queue
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: !Ref DownloadQueueRetentionSecs75Percent
+      Period: 60
+      EvaluationPeriods: 10
       AlarmActions:
         - !If
           - EmptyMetricAlarmSnsTopicArnCondition
@@ -1169,17 +1187,6 @@ Resources:
           - EmptyMetricAlarmSnsTopicArnCondition
           - !Ref SNSTopicMetricAlarms
           - !Ref MetricAlarmSnsTopicArn
-      MetricName: ApproximateAgeOfOldestMessage
-      Namespace: AWS/SQS
-      Statistic: Minimum
-      Dimensions:
-        - Name: QueueName
-          Value: !Sub ${LambdaFunctionDownloader}_queue
-      Period: 60
-      EvaluationPeriods: 10
-      Threshold: !Ref DownloadQueueRetentionSecs75Percent
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
 
   CloudWatchDashboard: # cloudwatch_dashboard.tf resource aws_cloudwatch_dashboard binaryalert
     Type: AWS::CloudWatch::Dashboard
