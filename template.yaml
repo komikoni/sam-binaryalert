@@ -14,7 +14,7 @@ Metadata:
     ReadmeUrl: docs/README4SAR.md
     LicenseUrl: LICENSE
     Labels: [Serverless, Anti-malware, s3, Lambda, Apache2, MadeInJapan]
-    SemanticVersion: 0.2.0-snapshot
+    SemanticVersion: 0.2.1-snapshot
     HomePageUrl: https://github.com/komikoni/sam-binaryalert#readme
     SourceCodeUrl: https://github.com/komikoni/sam-binaryalert.git
 
@@ -473,7 +473,7 @@ Resources:
   SQSQueueAnalyzer: # sqs.tf resource aws_sqs_queue analyzer_queue
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub ${LambdaFunctionAnalyzer}_queue
+      QueueName: !Sub ${NamePrefix}_binaryalert_analyzer_queue
       Tags:
         - Key: Name
           Value: !Ref TaggedName
@@ -522,7 +522,61 @@ Resources:
       MemorySize: !Ref LambdaAnalyzeMemoryMb
       Timeout: !Ref LambdaAnalyzeTimeoutSec
       ReservedConcurrentExecutions: !Ref LambdaAnalyzeConcurrencyLimit
-      Role: !GetAtt IAMRole.Arn
+      # Role: !GetAtt IAMRole.Arn
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+        - SQSPollerPolicy:
+            QueueName: !GetAtt SQSQueueAnalyzer.QueueName
+        - DynamoDBCrudPolicy:
+            TableName: DynamoDBTableYaraMatches
+        - Statement:
+          - Sid: QueryAndUpdateDynamo
+            Effect: Allow
+            Action:
+              - dynamodb:UpdateItem
+              - dynamodb:Query
+              - dynamodb:PutItem
+            Resource: !GetAtt DynamoDBTableYaraMatches.Arn
+          - Sid: DecryptSSE
+            Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kms:Describe*
+            Resource: !If
+              - EmptyExternalKmsKeyResourcesCondition
+              - - !GetAtt KMSKeySseSqs.Arn
+                - !GetAtt KMSKeySseS3.Arn
+              - !Split
+                - ","
+                - !Join
+                  - ","
+                  - - !GetAtt KMSKeySseSqs.Arn
+                    - !GetAtt KMSKeySseS3.Arn
+                    - !Ref ExternalKmsKeyResources
+          - Sid: GetFromS3Bucket
+            Effect: Allow
+            Action:
+              - s3:GetObject*
+              - s3:HeadObject
+            Resource: !If
+              - EmptyExternalS3BucketResourcesCondition
+              - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
+              - !Split
+                - ","
+                - !Join
+                  - ","
+                  - - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
+                    - !Ref ExternalS3BucketResources
+          - Sid: PublishAlertsToSNS
+            Effect: Allow
+            Action: sns:Publish
+            Resource:
+              - !Ref SNSTopicYaraMatchAlerts
+              - !If
+                - EnableNegativeMatchAlertsCondition
+                - !Ref SNSTopicNoYaraMatchAlerts
+                - !Ref AWS::NoValue
+
       AutoPublishAlias: Production
       Events:
         AppEvent:
@@ -696,103 +750,103 @@ Resources:
               StringEquals:
                 AWS:SourceOwner: !Sub ${AWS::AccountId}
 
-  IAMRole: # main.tf resource aws_iam_role role
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      # RoleName: !Sub ${NamePrefix}_binaryalert_analyzer_role # Only works with CAPABILITY_IAM
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Sid: AllowLambdaToAssumeRole
-            Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole # add
-        - !Ref IAMManagedPolicy
+  # IAMRole: # main.tf resource aws_iam_role role
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     Path: /
+  #     # RoleName: !Sub ${NamePrefix}_binaryalert_analyzer_role # Only works with CAPABILITY_IAM
+  #     AssumeRolePolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Sid: AllowLambdaToAssumeRole
+  #           Effect: Allow
+  #           Principal:
+  #             Service: lambda.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     ManagedPolicyArns:
+  #       - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole # add
+  #       - !Ref IAMManagedPolicy
 
-  IAMManagedPolicy: # lambda_iam.tf resource aws_iam_policy base_policy
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      # ManagedPolicyName: !Sub ${NamePrefix}_binaryalert_base_policy # Only works with CAPABILITY_IAM
-      Path: /
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Sid: EnableLogsAndMetrics
-            Effect: Allow
-            Action:
-              - logs:PutLogEvents
-              - logs:CreateLogStream
-              - logs:CreateLogGroup
-              - cloudwatch:PutMetricData
-            Resource: "*"
+  # IAMManagedPolicy: # lambda_iam.tf resource aws_iam_policy base_policy
+  #   Type: AWS::IAM::ManagedPolicy
+  #   Properties:
+  #     # ManagedPolicyName: !Sub ${NamePrefix}_binaryalert_base_policy # Only works with CAPABILITY_IAM
+  #     Path: /
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Sid: EnableLogsAndMetrics
+  #           Effect: Allow
+  #           Action:
+  #             - logs:PutLogEvents
+  #             - logs:CreateLogStream
+  #             - logs:CreateLogGroup
+  #             - cloudwatch:PutMetricData
+  #           Resource: "*"
 
-  IAMPolicy: # lambda_iam.tf resource aws_iam_role_policy binaryalert_analyzer_policy
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub ${LambdaFunctionAnalyzer}_policy
-      Roles:
-        - !Ref IAMRole
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Sid: QueryAndUpdateDynamo
-            Effect: Allow
-            Action:
-              - dynamodb:UpdateItem
-              - dynamodb:Query
-              - dynamodb:PutItem
-            Resource: !GetAtt DynamoDBTableYaraMatches.Arn
-          - Sid: DecryptSSE
-            Effect: Allow
-            Action:
-              - kms:Decrypt
-              - kms:Describe*
-            Resource: !If
-              - EmptyExternalKmsKeyResourcesCondition
-              - - !GetAtt KMSKeySseSqs.Arn
-                - !GetAtt KMSKeySseS3.Arn
-              - !Split
-                - ","
-                - !Join
-                  - ","
-                  - - !GetAtt KMSKeySseSqs.Arn
-                    - !GetAtt KMSKeySseS3.Arn
-                    - !Ref ExternalKmsKeyResources
-          - Sid: GetFromS3Bucket
-            Effect: Allow
-            Action:
-              - s3:GetObject*
-              - s3:HeadObject
-            Resource: !If
-              - EmptyExternalS3BucketResourcesCondition
-              - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
-              - !Split
-                - ","
-                - !Join
-                  - ","
-                  - - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
-                    - !Ref ExternalS3BucketResources
-          - Sid: PublishAlertsToSNS
-            Effect: Allow
-            Action: sns:Publish
-            Resource:
-              - !Ref SNSTopicYaraMatchAlerts
-              - !If
-                - EnableNegativeMatchAlertsCondition
-                - !Ref SNSTopicNoYaraMatchAlerts
-                - !Ref AWS::NoValue
-          - Sid: ProcessSQSMessages
-            Effect: Allow
-            Action:
-              - sqs:ReceiveMessage
-              - sqs:GetQueueAttributes
-              - sqs:DeleteMessage
-              - sqs:ChangeMessageVisibility
-            Resource: !GetAtt SQSQueueAnalyzer.Arn
+  # IAMPolicy: # lambda_iam.tf resource aws_iam_role_policy binaryalert_analyzer_policy
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: !Sub ${LambdaFunctionAnalyzer}_policy
+  #     Roles:
+  #       - !Ref IAMRole
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Sid: QueryAndUpdateDynamo
+  #           Effect: Allow
+  #           Action:
+  #             - dynamodb:UpdateItem
+  #             - dynamodb:Query
+  #             - dynamodb:PutItem
+  #           Resource: !GetAtt DynamoDBTableYaraMatches.Arn
+  #         - Sid: DecryptSSE
+  #           Effect: Allow
+  #           Action:
+  #             - kms:Decrypt
+  #             - kms:Describe*
+  #           Resource: !If
+  #             - EmptyExternalKmsKeyResourcesCondition
+  #             - - !GetAtt KMSKeySseSqs.Arn
+  #               - !GetAtt KMSKeySseS3.Arn
+  #             - !Split
+  #               - ","
+  #               - !Join
+  #                 - ","
+  #                 - - !GetAtt KMSKeySseSqs.Arn
+  #                   - !GetAtt KMSKeySseS3.Arn
+  #                   - !Ref ExternalKmsKeyResources
+  #         - Sid: GetFromS3Bucket
+  #           Effect: Allow
+  #           Action:
+  #             - s3:GetObject*
+  #             - s3:HeadObject
+  #           Resource: !If
+  #             - EmptyExternalS3BucketResourcesCondition
+  #             - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
+  #             - !Split
+  #               - ","
+  #               - !Join
+  #                 - ","
+  #                 - - !Sub ${S3BucketBinaryalertBinaries.Arn}/*
+  #                   - !Ref ExternalS3BucketResources
+  #         - Sid: PublishAlertsToSNS
+  #           Effect: Allow
+  #           Action: sns:Publish
+  #           Resource:
+  #             - !Ref SNSTopicYaraMatchAlerts
+  #             - !If
+  #               - EnableNegativeMatchAlertsCondition
+  #               - !Ref SNSTopicNoYaraMatchAlerts
+  #               - !Ref AWS::NoValue
+  #         - Sid: ProcessSQSMessages
+  #           Effect: Allow
+  #           Action:
+  #             - sqs:ReceiveMessage
+  #             - sqs:GetQueueAttributes
+  #             - sqs:DeleteMessage
+  #             - sqs:ChangeMessageVisibility
+  #           Resource: !GetAtt SQSQueueAnalyzer.Arn
 
   KMSKeySseS3: # kms.tf resource aws_kms_key sse_s3
     Type: AWS::KMS::Key
@@ -1066,6 +1120,7 @@ Resources:
       MemorySize: !Ref LambdaDownloadMemoryMb
       Timeout: !Ref LambdaDownloadTimeoutSec
       ReservedConcurrentExecutions: !Ref LambdaDownloadConcurrencyLimit
+      # Role: !GetAtt IAMRole2.Arn
       Policies:
         - CloudWatchPutMetricPolicy: {}
         - SQSPollerPolicy:
@@ -1083,8 +1138,6 @@ Resources:
               Resource:
                 - !GetAtt KMSKeySseSqs.Arn
                 - !GetAtt KMSKeySseS3.Arn
-
-      # Role: !GetAtt IAMRole2.Arn
       AutoPublishAlias: Production
       Events:
         AppEvent:
